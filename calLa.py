@@ -1,5 +1,4 @@
 import math
-import gym
 import torch
 import torch.optim as optim
 from tqdm import tqdm
@@ -38,8 +37,9 @@ def train(model, iter_num=100):
     optimizer = optim.Adam(params=[theta, thetadot, perturbation], lr=1e-3)
     pbar = tqdm(range(iter_num), dynamic_ncols=True, smoothing=0.01)
     for i in pbar:
-        a, log_prob = model(transform(theta + perturbation[0], thetadot + perturbation[1]))
-        negLa = - torch.norm(a, p=2) / torch.norm(perturbation, p=2)
+        a, log_prob = model(transform(theta, thetadot))
+        a_p, _ = model(transform(theta + perturbation[0], thetadot + perturbation[1]))
+        negLa = - torch.norm(a - a_p, p=2) / torch.norm(perturbation, p=2)
 
         optimizer.zero_grad()
         negLa.backward()
@@ -61,8 +61,9 @@ def MCMC(model, sample_num=10000):
         theta = torch.rand(1) * 2 * PI
         thetadot = torch.rand(1) * 2 * max_speed - max_speed
         perturbation = torch.rand(2) * sigma
-        a, log_prob = model(transform(theta + perturbation[0], thetadot + perturbation[1]))
-        La = torch.norm(a, p=2) / torch.norm(perturbation, p=2)
+        a, log_prob = model(transform(theta, thetadot))
+        a_p, _ = model(transform(theta + perturbation[0], thetadot + perturbation[1]))
+        La = torch.norm(a-a_p, p=2) / torch.norm(perturbation, p=2)
         max_La = La if La > max_La else max_La
         pbar.set_description(
             (
@@ -76,8 +77,8 @@ if __name__ == '__main__':
     model = PolicyNet(lr_pi)
     ckpt = torch.load(ckpt_path)
     model.load_state_dict(ckpt['policy'])
-    # train(model, iter_num=50000)
-    print(MCMC(model, sample_num=50000))
+    train(model, iter_num=50000)
+    # print(MCMC(model, sample_num=100000))
 
 
 
