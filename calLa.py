@@ -9,7 +9,7 @@ from sac import PolicyNet
 torch.manual_seed(2021)
 np.random.seed(2021)
 
-sigma = 0.1
+sigma = 0.01
 PI = math.pi
 lr_pi = 0.0005
 epoch = 1000  # options: 1000, 0
@@ -74,10 +74,10 @@ def MCMC(model, sample_num=10000):
         a, log_prob = model(transform(theta, thetadot))
         a_p, _ = model(transform(theta + perturbation[0], thetadot + perturbation[1]))
         La = torch.norm(a-a_p, p=2) / torch.norm(perturbation, p=2)
-        max_La = La if La > max_La else max_La
+        max_La = La.item() if La.item() > max_La else max_La
         pbar.set_description(
             (
-                f'La: {max_La.item()}'
+                f'La: {max_La}'
             )
         )
     return max_La

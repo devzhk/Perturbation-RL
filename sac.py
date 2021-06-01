@@ -162,7 +162,7 @@ def main():
 
         while not done:
             a, log_prob = pi(torch.from_numpy(s).float())
-            s_prime, r, done, info = env.step([2.0*a.item()])
+            s_prime, r, done, info = env.step([a.item()])
             memory.put((s, a.item(), r/10.0, s_prime, done))
             score += r
             s = s_prime
