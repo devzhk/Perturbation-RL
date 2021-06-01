@@ -64,13 +64,15 @@ class PolicyNet(nn.Module):
     def forward(self, x_in):
         x = F.relu(self.fc1(x_in))
         mu = self.fc_mu(x)
-        std = F.softplus(self.fc_std(x))
-        dist = Normal(mu, std)
-        action = dist.rsample()
-        log_prob = dist.log_prob(action)
-        real_action = torch.tanh(action)
-        real_log_prob = log_prob - \
-            torch.log(1-torch.tanh(action).pow(2) + 1e-7)
+        real_log_prob = torch.tensor([0.0])
+        real_action = mu
+        # std = F.softplus(self.fc_std(x))
+        # dist = Normal(mu, std)
+        # action = dist.rsample()
+        # log_prob = dist.log_prob(action)
+        # real_action = torch.tanh(action)
+        # real_log_prob = log_prob - \
+        #     torch.log(1-torch.tanh(action).pow(2) + 1e-7)
         return real_action, real_log_prob
 
     def train_net(self, q1, q2, mini_batch):
@@ -154,7 +156,7 @@ def main():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    for n_epi in range(10000):
+    for n_epi in range(5000):
         s = env.reset()
         done = False
 
