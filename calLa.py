@@ -6,6 +6,8 @@ import torch.optim as optim
 from tqdm import tqdm
 from sac import PolicyNet
 
+torch.manual_seed(2021)
+np.random.seed(2021)
 
 sigma = math.sqrt(16)
 PI = math.pi
