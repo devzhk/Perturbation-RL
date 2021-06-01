@@ -9,7 +9,7 @@ from sac import PolicyNet
 torch.manual_seed(2021)
 np.random.seed(2021)
 
-sigma = math.sqrt(16)
+sigma = 0.1
 PI = math.pi
 lr_pi = 0.0005
 epoch = 1000  # options: 1000, 0
@@ -101,9 +101,9 @@ if __name__ == '__main__':
     print('Load weights from %s' % ckpt_path)
     model.load_state_dict(ckpt['policy'])
 
-    print('Estimation via optimization')
-    mean, std = estimate(model, train, 5, 50000)
-    print('Mean: {}, std: {}'.format(mean, std))
+    # print('Estimation via optimization')
+    # mean, std = estimate(model, train, 5, 50000)
+    # print('Mean: {}, std: {}'.format(mean, std))
 
     print('Estimation via random sampling')
     mean, std = estimate(model, MCMC, 5, 100000)

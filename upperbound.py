@@ -13,3 +13,4 @@ if __name__ == '__main__':
     ckpt = torch.load(ckpt_path)
     print('Load weights from %s' % ckpt_path)
     model.load_state_dict(ckpt['policy'])
+
