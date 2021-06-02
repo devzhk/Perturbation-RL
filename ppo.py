@@ -6,8 +6,13 @@ import torch.optim as optim
 from torch.distributions import Normal
 import numpy as np
 
+try:
+    import wandb
+except:
+    wandb = None
+
 # Hyperparameters
-learning_rate = 0.0003
+learning_rate = 0.001
 gamma = 0.9
 lmbda = 0.9
 eps_clip = 0.2
@@ -26,13 +31,13 @@ class PPO(nn.Module):
         self.fc_mu = nn.Linear(hidden_dim, out_dim)
         self.fc_std = nn.Linear(hidden_dim, out_dim)
         self.fc_v = nn.Linear(hidden_dim, 1)
-        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, betas=(0.0, 0.999))
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, betas=(0.9, 0.999))
         self.optimization_step = 0
 
     def pi(self, x, softmax_dim=0):
         x = F.relu(self.fc1(x))
-        mu = self.fc_mu(x)
-        std = F.softplus(self.fc_std(x))
+        mu = 10 * F.tanh(self.fc_mu(x))
+        std = F.softplus(self.fc_std(x)) + 1e-5
         return mu, std
 
     def v(self, x):
@@ -123,14 +128,18 @@ class PPO(nn.Module):
 
 
 def main():
+    # weight and bias
+    wandb.init(project='RL',
+               entity='hzzheng',
+               tags=['default'])
     save_dir = 'checkpoints'
 
     # create environment
     state_dim = 2
     action_dim = 1
     # A = np.array([[1.0]])
-    A = np.array([[1.0, 1.0], [0.0, 1.0]])
-    B = np.array([[0.0], [1]])
+    A = np.array([[1.0, 0.1], [0.0, 1.0]])
+    B = np.array([[0.0], [0.1]])
     sigma = 0.1
     W = sigma * np.eye(state_dim)
     # B = np.eye(2)
@@ -138,15 +147,16 @@ def main():
     R = np.eye(action_dim)
     env = LQR(A, B, Q, R, W, state_dim)
 
+    # =====================================
     model = PPO(in_dim=state_dim, out_dim=action_dim)
     score = 0.0
-    print_interval = 5
+    print_interval = 10
     rollout = []
     avg_score = 0.0
-    for n_epi in range(10000):
+    for n_epi in range(1000):
         s = env.reset()
         done = False
-        for i in range(200):
+        for i in range(5):
             for t in range(rollout_len):
                 mu, std = model.pi(torch.from_numpy(s).float())
                 dist = Normal(mu, std)
@@ -161,21 +171,25 @@ def main():
 
                 s = s_prime
                 score += r
-            print(model.pi(torch.zeros(2)))
+            # print(model.pi(torch.zeros(2)))
             model.train_net()
 
-        score /= 200 * rollout_len
+        score /= 5 * rollout_len
         avg_score += score
         score = 0.0
         if n_epi % print_interval == 0 and n_epi != 0:
             print("# of episode :{}, avg score : {:.1f}, opt step: {}".
                   format(n_epi, avg_score / print_interval, model.optimization_step))
+            wandb.log(
+                {
+                    'Avg score': avg_score / print_interval
+                }
+            )
             avg_score = 0.0
         if n_epi % 100 == 0:
             state_dict = model.state_dict()
             torch.save({'policy': state_dict}, save_dir +
                        '/ppo-{}.pt'.format(n_epi))
-    env.close()
 
 
 if __name__ == '__main__':

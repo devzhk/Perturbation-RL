@@ -42,18 +42,20 @@ def main():
     P, K, op_cost, La = env.optimum()
     print('Optimal cost:{}; La: {}'.format(op_cost, La))
     print(f'P: {P};\n K : {K}')
-    sample_num = 5000
+    print(A + B @ K)
+    print(np.linalg.eigvals(A + B @ K))
+    sample_num = 1000
     avg_score = 0.0
     for n_epi in range(sample_num):
         s = env.reset()
         score = 0.0
-        for i in range(200):
+        for i in range(1000):
             for t in range(rollout_len):
                 a = PDcontrol(s, K)
                 s_prime, r, done, info = env.step(a)
                 s = s_prime
                 score += r
-        score /= 200 * rollout_len
+        score /= 1000 * rollout_len
         avg_score += score
         if n_epi % print_interval == 0 and n_epi != 0:
             print("# of episode :{}, avg score : {:.1f}".

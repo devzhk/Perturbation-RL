@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.linalg import solve_discrete_are
 
+
 class LQR(object):
     def __init__(self, A, B, Q, R, W, dim=3):
         '''
@@ -23,15 +24,17 @@ class LQR(object):
         return u.T @ A @ u
 
     def reset(self):
-        self.state = np.random.randn(self.dim)
+        self.state = np.random.randn(self.dim) * 5
+        # self.state = np.zeros(self.dim)
         return self.state
 
     def step(self, u):
         noise = np.random.multivariate_normal(mean=np.zeros_like(self.state),
                                               cov=self.W)
         new_state = self.A @ self.state + self.B @ u + noise
-        cost = LQR.quad(self.state, self.Q) + LQR.quad(u, self.R)
+        cost = LQR.quad(new_state, self.Q) + LQR.quad(u, self.R)
         self.cost += cost
+        self.state = new_state
         return new_state, -cost, False, {}
 
     def optimum(self):
