@@ -159,8 +159,9 @@ def main():
     for n_epi in range(5000):
         s = env.reset()
         done = False
-
+        iter = 0
         while not done:
+            iter += 1
             a, log_prob = pi(torch.from_numpy(s).float())
             s_prime, r, done, info = env.step([a.item()])
             memory.put((s, a.item(), r/10.0, s_prime, done))

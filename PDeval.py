@@ -81,8 +81,6 @@ def main():
             )
         )
         score = 0.0
-
-
     env.close()
 
 
