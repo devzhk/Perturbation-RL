@@ -26,7 +26,7 @@ class PPO(nn.Module):
         self.fc_mu = nn.Linear(hidden_dim, out_dim)
         self.fc_std = nn.Linear(hidden_dim, out_dim)
         self.fc_v = nn.Linear(hidden_dim, 1)
-        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, betas=(0.0, 0.999))
         self.optimization_step = 0
 
     def pi(self, x, softmax_dim=0):
@@ -129,18 +129,18 @@ def main():
     state_dim = 2
     action_dim = 1
     # A = np.array([[1.0]])
-    A = np.array([[1.0, 0.1], [0.0, 1.0]])
-    B = np.array([[0.0], [0.1]])
+    A = np.array([[1.0, 1.0], [0.0, 1.0]])
+    B = np.array([[0.0], [1]])
     sigma = 0.1
     W = sigma * np.eye(state_dim)
     # B = np.eye(2)
-    Q = np.eye(state_dim)
-    R = np.eye(action_dim) * 10.0
+    Q = np.eye(state_dim) * 10.0
+    R = np.eye(action_dim)
     env = LQR(A, B, Q, R, W, state_dim)
 
     model = PPO(in_dim=state_dim, out_dim=action_dim)
     score = 0.0
-    print_interval = 20
+    print_interval = 5
     rollout = []
     avg_score = 0.0
     for n_epi in range(10000):
@@ -161,6 +161,7 @@ def main():
 
                 s = s_prime
                 score += r
+            print(model.pi(torch.zeros(2)))
             model.train_net()
 
         score /= 200 * rollout_len
@@ -170,7 +171,7 @@ def main():
             print("# of episode :{}, avg score : {:.1f}, opt step: {}".
                   format(n_epi, avg_score / print_interval, model.optimization_step))
             avg_score = 0.0
-        if n_epi % 1000 == 0:
+        if n_epi % 100 == 0:
             state_dict = model.state_dict()
             torch.save({'policy': state_dict}, save_dir +
                        '/ppo-{}.pt'.format(n_epi))
