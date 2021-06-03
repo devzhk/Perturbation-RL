@@ -8,8 +8,6 @@ import torch.optim as optim
 from torch.distributions import Normal
 import numpy as np
 
-
-
 try:
     import wandb
 except:
@@ -26,7 +24,7 @@ Seeds:
 '''
 
 # Hyperparameters
-learning_rate = 0.0005
+learning_rate = 0.0003
 gamma = 0.9
 lmbda = 0.9
 eps_clip = 0.2
@@ -154,12 +152,12 @@ def main():
     if log and wandb:
         wandb.init(project='RL',
                    entity='hzzheng',
-                   tags=['4d'])
+                   tags=['2d-dt=1'])
     save_dir = 'checkpoints'
 
     # create environment
     dt = 0.1
-    state_dim = 1
+    state_dim = 2
     action_dim = 1
     # A = np.array([[1.0]])
     # B = np.array(([[dt]]))
@@ -185,7 +183,7 @@ def main():
     saved_flag = False
 
     for n_epi in range(1800):
-        s = env.reset(factor=2.0)
+        s = env.reset(factor=1.0)
         score = 0.0
         for i in range(5):
             for t in range(rollout_len):

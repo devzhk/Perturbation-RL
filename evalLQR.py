@@ -25,10 +25,10 @@ def PDcontrol(x, K):
     return u
 
 
-def main():
+def main(state_dim):
     print_interval = 20
     # create environment
-    state_dim = 1
+    # state_dim = 8
     action_dim = 1
     # A = np.array([[1.0]])
 
@@ -42,8 +42,9 @@ def main():
     R = np.eye(action_dim)
     env = LQR(A, B, Q, R, W, state_dim)
     P, K, op_cost, La = env.optimum()
-    print('Optimal cost:{}; La: {}'.format(op_cost, La))
-    print(f'P: {P};\n K : {K}')
+    # print('Optimal cost:{}; La: {}'.format(op_cost, La))
+    # print(f'P: {P};\n K : {K}')
+    return op_cost, La
     # print(A + B @ K)
     # print(np.linalg.eigvals(A + B @ K))
     sample_num = 1000
@@ -66,7 +67,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    for x in range(1, 7):
+        op_cost, La = main(2 * x)
+        print(f'State dim: {2 * x}; optimal cost: {op_cost}; La: {La}')
 
 
 
