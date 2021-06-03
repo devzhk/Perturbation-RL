@@ -98,10 +98,7 @@ if __name__ == '__main__':
 
     ckpt_path = 'checkpoints/ep-%d.pt' % epoch
     model = PolicyNet(lr_pi)
-    # ckpt_path = 'checkpoints/ppo-%d.pt' % epoch
-    # state_dim = 2
-    # action_dim = 1
-    # model = PPO(in_dim=state_dim, out_dim=action_dim)
+
 
     #  load model weights
     ckpt = torch.load(ckpt_path)

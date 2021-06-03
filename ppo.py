@@ -1,10 +1,14 @@
 from envs.LQR import LQR
+from utils import get_AB, linear_layers, random_AB
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Normal
 import numpy as np
+
+
 
 try:
     import wandb
@@ -13,8 +17,16 @@ except:
 
 torch.manual_seed(2022)
 np.random.seed(2022)
+
+'''
+Seeds:
+2d : 2022
+3d : 2023
+4d : 2023
+'''
+
 # Hyperparameters
-learning_rate = 0.0003
+learning_rate = 0.0005
 gamma = 0.9
 lmbda = 0.9
 eps_clip = 0.2
@@ -29,7 +41,7 @@ class PPO(nn.Module):
         super(PPO, self).__init__()
         self.data = []
 
-        self.fc1 = nn.Linear(in_dim, hidden_dim)
+        self.fc1 = linear_layers(layers=[in_dim, hidden_dim])
         self.fc_mu = nn.Linear(hidden_dim, out_dim)
         self.fc_std = nn.Linear(hidden_dim, out_dim)
         self.fc_v = nn.Linear(hidden_dim, 1)
@@ -38,7 +50,8 @@ class PPO(nn.Module):
         self.optimization_step = 0
 
     def weight_init(self):
-        nn.init.orthogonal_(self.fc1.weight.data)
+        # for p in self.fc1.modules():
+        #     nn.init.orthogonal_(p.weight.data)
         nn.init.orthogonal_(self.fc_mu.weight.data)
         nn.init.orthogonal_(self.fc_std.weight.data)
 
@@ -137,19 +150,21 @@ class PPO(nn.Module):
 
 def main():
     # weights and bias
-    log = True
+    log = False
     if log and wandb:
         wandb.init(project='RL',
                    entity='hzzheng',
-                   tags=['with tanh'])
+                   tags=['4d'])
     save_dir = 'checkpoints'
 
     # create environment
-    state_dim = 2
+    dt = 0.1
+    state_dim = 1
     action_dim = 1
     # A = np.array([[1.0]])
-    A = np.array([[1.0, 0.1], [0.0, 1.0]])
-    B = np.array([[0.0], [0.1]])
+    # B = np.array(([[dt]]))
+    A, B = get_AB(state_dim, action_dim, dt)
+    # A, B = random_AB(state_dim, action_dim)
     sigma = 0.1
     W = sigma * np.eye(state_dim)
     # B = np.eye(2)
@@ -158,14 +173,20 @@ def main():
     env = LQR(A, B, Q, R, W, state_dim)
 
     # =====================================
-    model = PPO(in_dim=state_dim, out_dim=action_dim)
-    score = 0.0
+    subop_cost = 180
+    model = PPO(in_dim=state_dim, hidden_dim=128, out_dim=action_dim)
+    # ckpt = torch.load('checkpoints/init.pt')
+    # model.load_state_dict(ckpt['init'])
+    # print('load from init.pt')
+
     print_interval = 10
     rollout = []
     avg_score = 0.0
-    for n_epi in range(3000):
-        s = env.reset()
-        done = False
+    saved_flag = False
+
+    for n_epi in range(1800):
+        s = env.reset(factor=2.0)
+        score = 0.0
         for i in range(5):
             for t in range(rollout_len):
                 mu, std = model.pi(torch.from_numpy(s).float())
@@ -186,7 +207,7 @@ def main():
 
         score /= 5 * rollout_len
         avg_score += score
-        score = 0.0
+
         if n_epi % print_interval == 0 and n_epi != 0:
             print("# of episode :{}, avg score : {:.1f}, opt step: {}".
                   format(n_epi, avg_score / print_interval, model.optimization_step))
@@ -197,10 +218,14 @@ def main():
                     }
                 )
             avg_score = 0.0
-        if n_epi % 1000 == 0:
+        if n_epi > 1000 and score > -subop_cost and not saved_flag:
             state_dict = model.state_dict()
             torch.save({'policy': state_dict}, save_dir +
                        '/ppo-{}.pt'.format(n_epi))
+            print('save model at %s' % (save_dir +
+                       '/ppo-{}.pt'.format(n_epi)))
+            saved_flag = True
+            print(f'Score :{score}')
 
 
 if __name__ == '__main__':

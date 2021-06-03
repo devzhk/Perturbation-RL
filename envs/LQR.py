@@ -23,8 +23,8 @@ class LQR(object):
     def quad(u, A):
         return u.T @ A @ u
 
-    def reset(self):
-        self.state = np.random.randn(self.dim)
+    def reset(self, factor=1.0):
+        self.state = np.random.randn(self.dim) * factor
         # self.state = np.zeros(self.dim)
         return self.state
 
