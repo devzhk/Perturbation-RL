@@ -157,7 +157,7 @@ def main():
 
     # create environment
     dt = 0.1
-    state_dim = 2
+    state_dim = 6
     action_dim = 1
     # A = np.array([[1.0]])
     # B = np.array(([[dt]]))
@@ -166,7 +166,7 @@ def main():
     sigma = 0.1
     W = sigma * np.eye(state_dim)
     # B = np.eye(2)
-    Q = np.eye(state_dim) * 10.0
+    Q = np.eye(state_dim) * 5.0
     R = np.eye(action_dim)
     env = LQR(A, B, Q, R, W, state_dim)
 

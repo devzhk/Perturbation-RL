@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 from tqdm import tqdm
-from sac import PolicyNet
+from sacPD import PolicyNet
 
 
 torch.manual_seed(2021)
@@ -25,7 +25,7 @@ state bound:
 
 
 def transform(theta, thetadot):
-    return torch.cat([torch.cos(theta), torch.sin(theta), thetadot])
+    return torch.cat([torch.cos(theta), torch.sin(theta), thetadot], dim=1)
 
 
 def train(model, iter_num=100):
@@ -81,6 +81,20 @@ def MCMC(model, sample_num=10000):
     return max_La
 
 
+def MC(model, sample_num=10000, sigma=0.01):
+    theta = torch.rand((sample_num, 1)) * 2 * PI
+    thetadot = torch.rand((sample_num, 1)) * 2 * max_speed - max_speed
+
+    perturbation = torch.rand((sample_num, 2)) * sigma
+    mu, std = model(transform(theta, thetadot))
+    mu_p, std_p = model(transform(theta + perturbation[:, 0:1], thetadot + perturbation[:, 1:]))
+    diff = torch.norm(mu - mu_p, p=2, dim=1)
+    norm = torch.norm(perturbation, p=2, dim=1)
+    La = diff / norm
+    maxLa = torch.max(La).item()
+    return maxLa
+
+
 def estimate(model, func, num_trial=5, iter_num=50000):
     La_list = []
     for i in range(num_trial):
@@ -94,24 +108,27 @@ def estimate(model, func, num_trial=5, iter_num=50000):
 
 
 if __name__ == '__main__':
-    epoch = 1000  # options: 1000, 0
+    epoch = 2000  # options: 1000, 0
 
-    ckpt_path = 'checkpoints/ep-%d.pt' % epoch
-    model = PolicyNet(lr_pi)
-
+    ckpt_path = 'checkpoints/sac-4-%d.pt' % epoch
+    layers = [3, 128, 128, 128]
+    model = PolicyNet(lr_pi, layers)
+    print(layers)
 
     #  load model weights
     ckpt = torch.load(ckpt_path)
     print('Load weights from %s' % ckpt_path)
     model.load_state_dict(ckpt['policy'])
 
+    La = MC(model, sample_num=100000)
+    print(f'La : {La}')
     # print('Estimation via optimization')
     # mean, std = estimate(model, train, 5, 50000)
     # print('Mean: {}, std: {}'.format(mean, std))
 
-    print('Estimation via random sampling')
-    mean, max = estimate(model, MCMC, 5, 100000)
-    print('Mean: {}, std: {}'.format(mean, max))
+    # print('Estimation via random sampling')
+    # mean, max = estimate(model, MCMC, 5, 100000)
+    # print('Mean: {}, std: {}'.format(mean, max))
     # print(MCMC(model, sample_num=100000))
 
 

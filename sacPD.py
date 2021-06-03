@@ -9,8 +9,11 @@ import collections
 import random
 import os
 
+from utils import linear_layers
+
+torch.manual_seed(2022)
 # Hyperparameters
-lr_pi = 0.0005
+lr_pi = 0.001
 lr_q = 0.001
 init_alpha = 0.01
 gamma = 0.98
@@ -50,9 +53,9 @@ class ReplayBuffer():
 
 
 class PolicyNet(nn.Module):
-    def __init__(self, learning_rate):
+    def __init__(self, learning_rate, layers=[3, 128]):
         super(PolicyNet, self).__init__()
-        self.fc1 = nn.Linear(3, 128)
+        self.fc1 = linear_layers(layers)
         self.fc_mu = nn.Linear(128, 1)
         self.fc_std = nn.Linear(128, 1)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
@@ -64,16 +67,16 @@ class PolicyNet(nn.Module):
     def forward(self, x_in):
         x = F.relu(self.fc1(x_in))
         mu = self.fc_mu(x)
-        real_log_prob = torch.tensor([0.0])
-        real_action = mu
-        # std = F.softplus(self.fc_std(x))
-        # dist = Normal(mu, std)
-        # action = dist.rsample()
-        # log_prob = dist.log_prob(action)
-        # real_action = torch.tanh(action)
-        # real_log_prob = log_prob - \
-        #     torch.log(1-torch.tanh(action).pow(2) + 1e-7)
-        return real_action, real_log_prob
+        # real_log_prob = torch.tensor([0.0])
+        # real_action = mu
+        std = F.softplus(self.fc_std(x))
+        dist = Normal(mu, std)
+        action = dist.rsample()
+        log_prob = dist.log_prob(action)
+        real_action = torch.tanh(action)
+        real_log_prob = log_prob - \
+            torch.log(1-torch.tanh(action).pow(2) + 1e-7)
+        return 2 * real_action, real_log_prob
 
     def train_net(self, q1, q2, mini_batch):
         s, _, _, _, _ = mini_batch
@@ -145,8 +148,9 @@ def main():
     memory = ReplayBuffer()
     q1, q2, q1_target, q2_target = QNet(
         lr_q), QNet(lr_q), QNet(lr_q), QNet(lr_q)
-    pi = PolicyNet(lr_pi)
-
+    layers = [3, 128, 128, 128]
+    pi = PolicyNet(lr_pi, layers)
+    print(layers)
     q1_target.load_state_dict(q1.state_dict())
     q2_target.load_state_dict(q2.state_dict())
 
@@ -156,7 +160,7 @@ def main():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    for n_epi in range(5000):
+    for n_epi in range(2200):
         s = env.reset()
         done = False
         iter = 0
@@ -185,7 +189,7 @@ def main():
         if n_epi % 1000 == 0:
             state_dict = pi.state_dict()
             torch.save({'policy': state_dict}, save_dir +
-                       '/ep-{}.pt'.format(n_epi))
+                       '/sac-4-{}.pt'.format(n_epi))
     env.close()
 
 

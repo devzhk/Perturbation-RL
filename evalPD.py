@@ -61,8 +61,9 @@ def main():
     env = gym.make('Pendulum-v0')
     score = 0.0
     print_interval = 20
-    sample_num = 5000
+    sample_num = 1000
     pbar = tqdm(range(sample_num), dynamic_ncols=True, smoothing=0.01)
+    scores = []
     for n_epi in pbar:
         s = env.reset()
         state = env.state
@@ -71,10 +72,10 @@ def main():
         while not done:
             a = PDcontrol(state)
             s_prime, r, done, info = env.step([a])
-            env.render()
+            # env.render()
             state = env.state
             score += r
-
+        scores.append(score)
         pbar.set_description(
             (
                 f'Round : {n_epi} Score :{score}'
@@ -82,6 +83,7 @@ def main():
         )
         score = 0.0
     env.close()
+    print(f'Mean of score: {np.mean(scores)}')
 
 
 if __name__ == '__main__':
