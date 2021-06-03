@@ -24,7 +24,7 @@ class LQR(object):
         return u.T @ A @ u
 
     def reset(self):
-        self.state = np.random.randn(self.dim) * 5
+        self.state = np.random.randn(self.dim)
         # self.state = np.zeros(self.dim)
         return self.state
 

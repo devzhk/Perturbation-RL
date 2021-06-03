@@ -11,8 +11,10 @@ try:
 except:
     wandb = None
 
+torch.manual_seed(2022)
+np.random.seed(2022)
 # Hyperparameters
-learning_rate = 0.001
+learning_rate = 0.0003
 gamma = 0.9
 lmbda = 0.9
 eps_clip = 0.2
@@ -31,8 +33,14 @@ class PPO(nn.Module):
         self.fc_mu = nn.Linear(hidden_dim, out_dim)
         self.fc_std = nn.Linear(hidden_dim, out_dim)
         self.fc_v = nn.Linear(hidden_dim, 1)
-        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, betas=(0.9, 0.999))
+        # self.weight_init()
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate, betas=(0.0, 0.999))
         self.optimization_step = 0
+
+    def weight_init(self):
+        nn.init.orthogonal_(self.fc1.weight.data)
+        nn.init.orthogonal_(self.fc_mu.weight.data)
+        nn.init.orthogonal_(self.fc_std.weight.data)
 
     def pi(self, x, softmax_dim=0):
         x = F.relu(self.fc1(x))
@@ -128,10 +136,12 @@ class PPO(nn.Module):
 
 
 def main():
-    # weight and bias
-    wandb.init(project='RL',
-               entity='hzzheng',
-               tags=['default'])
+    # weights and bias
+    log = True
+    if log and wandb:
+        wandb.init(project='RL',
+                   entity='hzzheng',
+                   tags=['with tanh'])
     save_dir = 'checkpoints'
 
     # create environment
@@ -153,7 +163,7 @@ def main():
     print_interval = 10
     rollout = []
     avg_score = 0.0
-    for n_epi in range(1000):
+    for n_epi in range(3000):
         s = env.reset()
         done = False
         for i in range(5):
@@ -180,13 +190,14 @@ def main():
         if n_epi % print_interval == 0 and n_epi != 0:
             print("# of episode :{}, avg score : {:.1f}, opt step: {}".
                   format(n_epi, avg_score / print_interval, model.optimization_step))
-            wandb.log(
-                {
-                    'Avg score': avg_score / print_interval
-                }
-            )
+            if log and wandb:
+                wandb.log(
+                    {
+                        'Avg score': avg_score / print_interval
+                    }
+                )
             avg_score = 0.0
-        if n_epi % 100 == 0:
+        if n_epi % 1000 == 0:
             state_dict = model.state_dict()
             torch.save({'policy': state_dict}, save_dir +
                        '/ppo-{}.pt'.format(n_epi))
