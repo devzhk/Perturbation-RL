@@ -6,15 +6,13 @@ import torch.optim as optim
 from tqdm import tqdm
 from sac import PolicyNet
 
+
 torch.manual_seed(2021)
 np.random.seed(2021)
 
 sigma = 0.01
 PI = math.pi
 lr_pi = 0.0005
-epoch = 1000  # options: 1000, 0
-
-ckpt_path = 'checkpoints/ep-%d.pt' % epoch
 
 max_speed = 8.0
 
@@ -90,13 +88,22 @@ def estimate(model, func, num_trial=5, iter_num=50000):
         print('Trial :{}, La: {}'.format(i, la))
         La_list.append(la)
     Las = np.array(La_list)
+    max = Las.max()
     mean = Las.mean()
-    std = Las.std()
-    return mean, std
+    return mean, max
 
 
 if __name__ == '__main__':
+    epoch = 1000  # options: 1000, 0
+
+    ckpt_path = 'checkpoints/ep-%d.pt' % epoch
     model = PolicyNet(lr_pi)
+    # ckpt_path = 'checkpoints/ppo-%d.pt' % epoch
+    # state_dim = 2
+    # action_dim = 1
+    # model = PPO(in_dim=state_dim, out_dim=action_dim)
+
+    #  load model weights
     ckpt = torch.load(ckpt_path)
     print('Load weights from %s' % ckpt_path)
     model.load_state_dict(ckpt['policy'])
@@ -106,8 +113,8 @@ if __name__ == '__main__':
     # print('Mean: {}, std: {}'.format(mean, std))
 
     print('Estimation via random sampling')
-    mean, std = estimate(model, MCMC, 5, 100000)
-    print('Mean: {}, std: {}'.format(mean, std))
+    mean, max = estimate(model, MCMC, 5, 100000)
+    print('Mean: {}, std: {}'.format(mean, max))
     # print(MCMC(model, sample_num=100000))
 
 
